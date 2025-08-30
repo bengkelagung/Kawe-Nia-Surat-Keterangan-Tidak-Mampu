@@ -316,6 +316,65 @@
       color:var(--muted); font-size:12px
     }
 
+    /* Loading Animation */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: var(--radius);
+      z-index: 10;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(148,163,184,.2);
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    
+    .loading-dots {
+      display: inline-block;
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
+    }
+    
+    .loading-dots::after {
+      content: '';
+    }
     /* Custom Popup Styles */
     .popup-overlay {
       position: fixed;
@@ -422,7 +481,15 @@
     </div>
 
     <!-- Main Card -->
-    <section class="card" role="region" aria-label="Layanan SKTM">
+    <section class="card" role="region" aria-label="Layanan SKTM" style="position: relative;">
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">
+          Memuat data<span class="loading-dots"></span>
+        </div>
+      </div>
+      
       <header class="card-header">
         <div class="hgroup">
           <!-- Updated JSON structure from $json[0] to $json.data[0] -->
@@ -673,6 +740,7 @@ function normalizeDocs(docs){
 let lastJSON=null, lastObj={}, lastHash=null;
 let editMode=false, pollHandle=null;
 let pendingFiles=[];
+let isLoading=true;
 
 /* =========================
    5) PETA ELEMEN
@@ -705,6 +773,7 @@ const EDIT = {
 const elFileInput=$('fileInput'), elFileInfo=$('fileInfo'), elUploadBtn=$('uploadBtn');
 const elProg=$('uploadProgress'), elProgBar=$('uploadProgressBar');
 const popupOverlay=$('popupOverlay');
+const loadingOverlay=$('loadingOverlay');
 
 /* =========================
    6) RENDERING
@@ -739,6 +808,12 @@ function renderFiles(obj){
   });
 }
 function renderView(obj){
+  // Hide loading overlay when data is rendered
+  if (isLoading && loadingOverlay) {
+    loadingOverlay.style.display = 'none';
+    isLoading = false;
+  }
+  
   if (VIEW.jenis_surat) VIEW.jenis_surat.textContent = toStr(obj.jenis_surat,'Surat Keterangan Tidak Mampu (SKTM)');
   if (VIEW.nomor_surat) VIEW.nomor_surat.textContent = toStr(obj.nomor_surat,'—');
   if (VIEW.operator) VIEW.operator.textContent = toStr(obj.operator,'—');
@@ -837,6 +912,12 @@ async function saveChanges(){
 async function loadOnce(){
   try{
     if (!JSON_URL) return console.warn('ID_USER kosong.');
+    
+    // Show loading overlay if this is the first load
+    if (isLoading && loadingOverlay) {
+      loadingOverlay.style.display = 'flex';
+    }
+    
     const res = await fetch(JSON_URL + '?t=' + Date.now(), { cache:'no-store' });
     const text = await res.text();
     if (!res.ok) throw new Error('HTTP '+res.status+' — '+text.slice(0,200));
@@ -846,7 +927,14 @@ async function loadOnce(){
       lastHash = h; lastJSON = data; lastObj = pickObj(data) || {};
       renderView(lastObj);
     }
-  }catch(e){ console.error('Load error:', e.message); }
+  }catch(e){ 
+    console.error('Load error:', e.message);
+    // Hide loading overlay even on error
+    if (isLoading && loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+      isLoading = false;
+    }
+  }
 }
 function startRealtime(){ renderStatic(); loadOnce(); startPolling(); }
 

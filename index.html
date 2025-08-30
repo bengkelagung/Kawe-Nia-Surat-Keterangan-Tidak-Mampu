@@ -616,7 +616,7 @@ const POLL_MS = 1000; // realtime di luar edit: 1 detik
 /* =========================
    2) ID_USER & SUMBER DATA
    ========================= */
-const ID_USER_RAW = "{{ $json.id }}"; // pakai ?id=... bila tidak dirender n8n
+const ID_USER_RAW = "1S7Oxr5yguiDl2ANztDEDrA23kDpn-PRd"; // pakai ?id=... bila tidak dirender n8n
 function resolveIdUser(){
   if (/\{\{\s*\$json\.id\s*\}\}/.test(ID_USER_RAW)) {
     const u = new URL(location.href);
